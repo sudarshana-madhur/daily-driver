@@ -1,12 +1,21 @@
+import 'package:daily_driver/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SideDrawer extends StatelessWidget {
-  const SideDrawer({super.key});
+class SideDrawer extends ConsumerWidget {
+  final bool permanent;
+  final double? width;
+  const SideDrawer({super.key, this.permanent = false, this.width});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateChangesProvider).value;
+    final userEmail = user?.email ?? 'Jon Doe';
+
     return Drawer(
+      width: width,
       backgroundColor: const Color(0xFF141311),
+      shape: permanent ? const RoundedRectangleBorder() : null,
       child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -36,28 +45,17 @@ class SideDrawer extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Alex Editor',
-                          // style: TextStyle(
-                          //   // color: Colors.white,
-                          //   fontWeight: FontWeight.bold,
-                          //   fontSize: 18,
-                          // ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'EDITORIAL TASKMASTER',
-                          // style: TextStyle(
-                          //   // color: Colors.white.withOpacity(0.5),
-                          //   fontSize: 10,
-                          //   fontWeight: FontWeight.w800,
-                          //   letterSpacing: 1.0,
-                          // ),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userEmail,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -81,20 +79,13 @@ class SideDrawer extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'YOUR PROJECTS',
-                      // style: TextStyle(
-                      //   // color: Colors.white.withOpacity(0.5),
-                      //   fontSize: 10,
-                      //   fontWeight: FontWeight.w800,
-                      //   letterSpacing: 1.0,
-                      // ),
+                    const Expanded(
+                      child: Text(
+                        'YOUR PROJECTS',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    Icon(
-                      Icons.add,
-                      // color: Colors.white.withOpacity(0.5),
-                      size: 16,
-                    ),
+                    const Icon(Icons.add, size: 16),
                   ],
                 ),
               ),
@@ -140,7 +131,9 @@ class SideDrawer extends StatelessWidget {
             // ),
           ),
           onTap: () {
-            Navigator.pop(context);
+            if (Scaffold.of(context).isDrawerOpen) {
+              Navigator.pop(context);
+            }
           },
         ),
       ),

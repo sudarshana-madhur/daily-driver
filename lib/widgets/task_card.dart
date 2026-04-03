@@ -3,22 +3,110 @@ import 'package:daily_driver/util.dart';
 import 'package:flutter/material.dart';
 import 'package:daily_driver/models/task.dart';
 import 'package:daily_driver/widgets/add_task_dialog.dart';
+import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:confetti/confetti.dart';
 
-class TaskCard extends StatelessWidget {
+// Shared AudioPlayer singleton for efficient resource management
+final AudioPlayer _sharedAudioPlayer = AudioPlayer();
+bool _hasStartedInitialization = false;
+
+// Ensure audio is initialized only once for the entire app lifecycle
+Future<void> _ensureAudioInitialized() async {
+  if (_hasStartedInitialization) return;
+  _hasStartedInitialization = true;
+  try {
+    debugPrint('TaskCard: One-time global initialization of popp.mp3');
+    await _sharedAudioPlayer.setAsset('assets/popp.mp3');
+    debugPrint('TaskCard: Global audio initialization successful');
+  } catch (e) {
+    _hasStartedInitialization = false; // Allow retry if it failed
+    debugPrint('TaskCard: Global audio initialization failed: $e');
+  }
+}
+
+class TaskCard extends StatefulWidget {
   final Task task;
   final void Function(Task, bool) onChanged;
 
   const TaskCard({super.key, required this.task, required this.onChanged});
 
   @override
+  State<TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<TaskCard> {
+  late ConfettiController _confettiController;
+  bool _forceCompleted = false;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 800),
+    );
+
+    // Trigger the global initialization once
+    _ensureAudioInitialized();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleCompletion(bool value) async {
+    if (value) {
+      if (_isProcessing) return;
+
+      setState(() {
+        _isProcessing = true;
+        _forceCompleted = true;
+      });
+
+      // 1. Play completion sound immediately
+      try {
+        // Stop and reset the shared player to allow rapid replay
+        if (_sharedAudioPlayer.playing) {
+          await _sharedAudioPlayer.stop();
+        }
+        await _sharedAudioPlayer.seek(Duration.zero);
+        // We don't await play() to ensure the UI animation continues immediately
+        _sharedAudioPlayer.play();
+        // debugPrint('TaskCard: Playback triggered');
+      } catch (e) {
+        debugPrint('TaskCard: Playback error: $e');
+      }
+
+      // 2. Trigger haptic feedback
+      await HapticFeedback.mediumImpact();
+
+      // 3. Trigger confetti
+      _confettiController.play();
+
+      // 4. Stay in the completed state for a second so the user can enjoy the reward
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      if (mounted) {
+        widget.onChanged(widget.task, value);
+      }
+    } else {
+      widget.onChanged(widget.task, value);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isCompleted = task.status == TaskStatus.completed;
+    final isCompleted =
+        widget.task.status == TaskStatus.completed || _forceCompleted;
 
     return Opacity(
       opacity: isCompleted ? 0.5 : 1,
       child: Card(
         elevation: 0,
-        clipBehavior: Clip.hardEdge,
+        clipBehavior: Clip.none,
         child: InkWell(
           onTap: isCompleted
               ? null
@@ -26,30 +114,50 @@ class TaskCard extends StatelessWidget {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
-                    builder: (context) => AddTaskDialog(task: task),
+                    builder: (context) => AddTaskDialog(task: widget.task),
                   );
                 },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: Row(
-              // crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Checkbox(
-                  shape: CircleBorder(),
-                  value: isCompleted,
-                  onChanged: (value) {
-                    onChanged(task, value!);
-                  },
+                Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Checkbox(
+                      shape: const CircleBorder(),
+                      value: isCompleted,
+                      onChanged: _isProcessing
+                          ? null
+                          : (value) => _handleCompletion(value!),
+                    ),
+                    ConfettiWidget(
+                      confettiController: _confettiController,
+                      blastDirectionality: BlastDirectionality.explosive,
+                      shouldLoop: false,
+                      colors: const [
+                        Colors.green,
+                        Colors.blue,
+                        Colors.pink,
+                        Colors.orange,
+                        Colors.purple,
+                      ],
+                      numberOfParticles: 12,
+                      gravity: 0.1,
+                      maxBlastForce: 5,
+                      minBlastForce: 2,
+                      strokeWidth: 1,
+                    ),
+                  ],
                 ),
-
                 const SizedBox(width: 8),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        task.title,
+                        widget.task.title,
                         style: TextStyle(
                           decoration: isCompleted
                               ? TextDecoration.lineThrough
@@ -60,22 +168,24 @@ class TaskCard extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          if (task.dueDate != null) ...[
+                          if (widget.task.dueDate != null) ...[
                             Icon(
                               Icons.access_time,
                               size: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.fontSize,
                               color: formatTaskDate(
-                                task.dueDate!.toDate(),
+                                widget.task.dueDate!.toDate(),
                               )['color'],
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              formatTaskDate(task.dueDate!.toDate())['text'],
+                              formatTaskDate(
+                                widget.task.dueDate!.toDate(),
+                              )['text'],
                               style: TextStyle(
                                 color: formatTaskDate(
-                                  task.dueDate!.toDate(),
+                                  widget.task.dueDate!.toDate(),
                                 )['color'],
                                 fontSize: Theme.of(
                                   context,
@@ -84,9 +194,8 @@ class TaskCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                           ],
-
-                          if (task.dueDate != null &&
-                              task.isRecurring == true) ...[
+                          if (widget.task.dueDate != null &&
+                              widget.task.isRecurring == true) ...[
                             Icon(
                               Icons.repeat_rounded,
                               size: Theme.of(
@@ -95,23 +204,22 @@ class TaskCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                           ],
-
-                          if (labels[task.label] != null) ...[
+                          if (labels[widget.task.label] != null) ...[
                             Icon(
                               Icons.local_offer_outlined,
                               size: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.fontSize,
-                              color: labels[task.label]!['color'],
+                              color: labels[widget.task.label]!['color'],
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              labels[task.label]!['name'],
+                              labels[widget.task.label]!['name'],
                               style: TextStyle(
                                 fontSize: Theme.of(
                                   context,
                                 ).textTheme.labelMedium?.fontSize,
-                                color: labels[task.label]!['color'],
+                                color: labels[widget.task.label]!['color'],
                               ),
                             ),
                           ],

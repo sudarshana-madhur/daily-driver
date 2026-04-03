@@ -70,13 +70,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final bool isWideScreen = MediaQuery.of(context).size.width >= 900;
+
+    Widget mainContent = Scaffold(
       appBar: AppBar(
         // elevation: 0,
         // scrolledUnderElevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         title: Text(bottomNavItems[_selectedIndex].label),
+        automaticallyImplyLeading: !isWideScreen,
         // actions: [
         //   Row(
         //     children: [
@@ -95,7 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         //   const SizedBox(width: 8),
         // ],
       ),
-      drawer: const SideDrawer(),
+      drawer: isWideScreen ? null : const SideDrawer(),
       body: bottomNavItems[_selectedIndex].screen,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -122,11 +125,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         items: bottomNavItems.map((item) {
           return BottomNavigationBarItem(
             icon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
+              padding: const EdgeInsets.only(bottom: 4.0),
               child: Icon(item.icon),
             ),
             activeIcon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
+              padding: const EdgeInsets.only(bottom: 4.0),
               child: Icon(item.activeIcon),
             ),
             label: item.label,
@@ -134,5 +137,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }).toList(),
       ),
     );
+
+    if (isWideScreen) {
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double sideDrawerWidth = (screenWidth * 0.18).clamp(250.0, 350.0);
+      return Scaffold(
+        body: Row(
+          children: [
+            SideDrawer(permanent: true, width: sideDrawerWidth),
+            Expanded(child: mainContent),
+          ],
+        ),
+      );
+    }
+
+    return mainContent;
   }
 }
