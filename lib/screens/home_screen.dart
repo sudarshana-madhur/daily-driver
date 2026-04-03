@@ -1,4 +1,5 @@
 import 'package:daily_driver/screens/inbox_screen.dart';
+import 'package:daily_driver/screens/kanban_board.dart';
 import 'package:daily_driver/screens/upcoming_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       activeIcon: Icons.calendar_today,
       label: 'Today',
       screen: ListViewScreen(),
+    ),
+    NavItem(
+      icon: Icons.view_kanban_outlined,
+      activeIcon: Icons.view_kanban,
+      label: 'Kanban',
+      screen: KanbanBoard(),
     ),
     NavItem(
       icon: Icons.inbox_outlined,

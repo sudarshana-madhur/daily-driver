@@ -8,16 +8,16 @@ import 'package:just_audio/just_audio.dart';
 import 'package:confetti/confetti.dart';
 
 // Shared AudioPlayer singleton for efficient resource management
-final AudioPlayer _sharedAudioPlayer = AudioPlayer();
+final AudioPlayer sharedAudioPlayer = AudioPlayer();
 bool _hasStartedInitialization = false;
 
 // Ensure audio is initialized only once for the entire app lifecycle
-Future<void> _ensureAudioInitialized() async {
+Future<void> ensureAudioInitialized() async {
   if (_hasStartedInitialization) return;
   _hasStartedInitialization = true;
   try {
     debugPrint('TaskCard: One-time global initialization of popp.mp3');
-    await _sharedAudioPlayer.setAsset('assets/popp.mp3');
+    await sharedAudioPlayer.setAsset('assets/popp.mp3');
     debugPrint('TaskCard: Global audio initialization successful');
   } catch (e) {
     _hasStartedInitialization = false; // Allow retry if it failed
@@ -25,11 +25,34 @@ Future<void> _ensureAudioInitialized() async {
   }
 }
 
+Future<void> playCompletionSound() async {
+  try {
+    await ensureAudioInitialized();
+    // Stop and reset the shared player to allow rapid replay
+    if (sharedAudioPlayer.playing) {
+      await sharedAudioPlayer.stop();
+    }
+    await sharedAudioPlayer.seek(Duration.zero);
+    // We don't await play() to ensure the UI animation continues immediately
+    sharedAudioPlayer.play();
+  } catch (e) {
+    debugPrint('TaskCard: Playback error: $e');
+  }
+}
+
 class TaskCard extends StatefulWidget {
   final Task task;
   final void Function(Task, bool) onChanged;
+  final bool showCheckbox;
+  final Widget? dragHandle;
 
-  const TaskCard({super.key, required this.task, required this.onChanged});
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.onChanged,
+    this.showCheckbox = true,
+    this.dragHandle,
+  });
 
   @override
   State<TaskCard> createState() => _TaskCardState();
@@ -48,7 +71,7 @@ class _TaskCardState extends State<TaskCard> {
     );
 
     // Trigger the global initialization once
-    _ensureAudioInitialized();
+    ensureAudioInitialized();
   }
 
   @override
@@ -67,18 +90,7 @@ class _TaskCardState extends State<TaskCard> {
       });
 
       // 1. Play completion sound immediately
-      try {
-        // Stop and reset the shared player to allow rapid replay
-        if (_sharedAudioPlayer.playing) {
-          await _sharedAudioPlayer.stop();
-        }
-        await _sharedAudioPlayer.seek(Duration.zero);
-        // We don't await play() to ensure the UI animation continues immediately
-        _sharedAudioPlayer.play();
-        // debugPrint('TaskCard: Playback triggered');
-      } catch (e) {
-        debugPrint('TaskCard: Playback error: $e');
-      }
+      await playCompletionSound();
 
       // 2. Trigger haptic feedback
       await HapticFeedback.mediumImpact();
@@ -121,37 +133,44 @@ class _TaskCardState extends State<TaskCard> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: Row(
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Checkbox(
-                      shape: const CircleBorder(),
-                      value: isCompleted,
-                      onChanged: _isProcessing
-                          ? null
-                          : (value) => _handleCompletion(value!),
-                    ),
-                    ConfettiWidget(
-                      confettiController: _confettiController,
-                      blastDirectionality: BlastDirectionality.explosive,
-                      shouldLoop: false,
-                      colors: const [
-                        Colors.green,
-                        Colors.blue,
-                        Colors.pink,
-                        Colors.orange,
-                        Colors.purple,
-                      ],
-                      numberOfParticles: 12,
-                      gravity: 0.1,
-                      maxBlastForce: 5,
-                      minBlastForce: 2,
-                      strokeWidth: 1,
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
+                if (widget.dragHandle != null) ...[
+                  widget.dragHandle!,
+                  const SizedBox(width: 8),
+                ],
+                if (widget.showCheckbox) ...[
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Checkbox(
+                        shape: const CircleBorder(),
+                        value: isCompleted,
+                        onChanged: _isProcessing
+                            ? null
+                            : (value) => _handleCompletion(value!),
+                      ),
+                      ConfettiWidget(
+                        confettiController: _confettiController,
+                        blastDirectionality: BlastDirectionality.explosive,
+                        shouldLoop: false,
+                        colors: const [
+                          Colors.green,
+                          Colors.blue,
+                          Colors.pink,
+                          Colors.orange,
+                          Colors.purple,
+                        ],
+                        numberOfParticles: 12,
+                        gravity: 0.1,
+                        maxBlastForce: 5,
+                        minBlastForce: 2,
+                        strokeWidth: 1,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                ] else
+                  const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
