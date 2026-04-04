@@ -88,6 +88,7 @@ class TaskRepository {
       final newDueDate = _calculateNextDueDate(
         task.dueDate!.toDate(),
         task.recurrenceInterval!,
+        task.customRecurrenceDays,
       );
 
       final newTask = task.copyWith(
@@ -103,7 +104,11 @@ class TaskRepository {
     }
   }
 
-  DateTime _calculateNextDueDate(DateTime currentDueDate, String interval) {
+  DateTime _calculateNextDueDate(
+    DateTime currentDueDate,
+    String interval,
+    int? customRecurrenceDays,
+  ) {
     final intervalLower = interval.toLowerCase();
     if (intervalLower == 'daily') {
       return currentDueDate.add(const Duration(days: 1));
@@ -138,6 +143,8 @@ class TaskRepository {
         currentDueDate.millisecond,
         currentDueDate.microsecond,
       );
+    } else if (intervalLower == 'custom' && customRecurrenceDays != null) {
+      return currentDueDate.add(Duration(days: customRecurrenceDays));
     }
     return currentDueDate;
   }

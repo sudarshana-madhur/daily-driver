@@ -11,4 +11,5 @@ Map<String, String> recurrenceOptions = {
   'daily': 'Daily',
   'weekly': 'Weekly',
   'monthly': 'Monthly',
+  'custom': 'Custom',
 };

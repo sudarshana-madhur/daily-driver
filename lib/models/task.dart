@@ -16,6 +16,7 @@ class Task {
   final double position;
   final bool? isLater;
   final bool? isRecurrenceCreated;
+  final int? customRecurrenceDays;
 
   Task({
     required this.id,
@@ -30,6 +31,7 @@ class Task {
     this.recurrenceInterval,
     this.isLater,
     this.isRecurrenceCreated,
+    this.customRecurrenceDays,
     double? position,
   }) : position = position ?? -createdAt.millisecondsSinceEpoch.toDouble();
 
@@ -51,6 +53,7 @@ class Task {
       position: (map['position'] as num?)?.toDouble(),
       isLater: map['isLater'] ?? false,
       isRecurrenceCreated: map['isRecurrenceCreated'] ?? false,
+      customRecurrenceDays: map['customRecurrenceDays'],
     );
   }
 
@@ -68,6 +71,7 @@ class Task {
       'position': position,
       'isLater': isLater,
       'isRecurrenceCreated': isRecurrenceCreated,
+      'customRecurrenceDays': customRecurrenceDays,
     };
   }
 
@@ -85,6 +89,7 @@ class Task {
     double? position,
     bool? isLater,
     bool? isRecurrenceCreated,
+    int? customRecurrenceDays,
   }) {
     return Task(
       id: id ?? this.id,
@@ -100,6 +105,7 @@ class Task {
       position: position ?? this.position,
       isLater: isLater ?? this.isLater,
       isRecurrenceCreated: isRecurrenceCreated ?? this.isRecurrenceCreated,
+      customRecurrenceDays: customRecurrenceDays ?? this.customRecurrenceDays,
     );
   }
 }

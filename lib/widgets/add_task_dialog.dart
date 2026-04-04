@@ -1,6 +1,7 @@
 import 'package:daily_driver/constants.dart';
 import 'package:daily_driver/util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
 import '../repositories/task_repository.dart';
@@ -16,6 +17,7 @@ class AddTaskDialog extends ConsumerStatefulWidget {
 
 class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
   final _titleController = TextEditingController();
+  final _customDaysController = TextEditingController();
   final _labelMenuController = MenuController();
   final _recurrenceMenuController = MenuController();
 
@@ -41,6 +43,10 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
       if (widget.task!.recurrenceInterval != null) {
         _selectedRecurrenceOption = widget.task!.recurrenceInterval;
       }
+      if (widget.task!.customRecurrenceDays != null) {
+        _customDaysController.text =
+            widget.task!.customRecurrenceDays?.toString() ?? "";
+      }
       if (widget.task!.dueDate != null) {
         _selectedDueDate = widget.task!.dueDate!.toDate();
       }
@@ -64,6 +70,53 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
     if (picked != null) {
       setState(() {
         _selectedDueDate = picked;
+      });
+    }
+  }
+
+  Future<void> _showCustomDaysDialog() async {
+    final initialValue = _customDaysController.text.isEmpty
+        ? '1'
+        : _customDaysController.text;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController(text: initialValue);
+        return AlertDialog(
+          title: const Text('Custom Recurrence'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(
+              hintText: 'Number of days',
+              suffixText: 'days',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty &&
+                    int.tryParse(controller.text) != null) {
+                  Navigator.pop(context, controller.text);
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _customDaysController.text = result;
+        _selectedRecurrenceOption = 'custom';
       });
     }
   }
@@ -161,10 +214,14 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
                                 ).textTheme.labelMedium?.fontSize,
                               ),
                             ),
-                            onPressed: () => {
-                              setState(() {
-                                _selectedRecurrenceOption = option;
-                              }),
+                            onPressed: () {
+                              if (option == 'custom') {
+                                _showCustomDaysDialog();
+                              } else {
+                                setState(() {
+                                  _selectedRecurrenceOption = option;
+                                });
+                              }
                             },
                           ),
                       ],
@@ -186,20 +243,25 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
                     if (_selectedRecurrenceOption != null)
                       InputChip(
                         label: Text(
-                          recurrenceOptions[_selectedRecurrenceOption]!,
+                          _selectedRecurrenceOption == 'custom'
+                              ? 'Custom (${_customDaysController.text.isEmpty ? '?' : _customDaysController.text} days)'
+                              : recurrenceOptions[_selectedRecurrenceOption]!,
                           style: TextStyle(
                             fontSize: Theme.of(
                               context,
                             ).textTheme.labelMedium?.fontSize,
                           ),
                         ),
-
+                        onPressed: _selectedRecurrenceOption == 'custom'
+                            ? _showCustomDaysDialog
+                            : null,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         onDeleted: () {
                           setState(() {
                             _selectedRecurrenceOption = null;
+                            _customDaysController.clear();
                           });
                         },
                       ),
@@ -361,6 +423,7 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
         isRecurring: _selectedRecurrenceOption != null ? true : false,
         recurrenceInterval: _selectedRecurrenceOption,
         position: widget.task!.position,
+        customRecurrenceDays: int.tryParse(_customDaysController.text),
       );
       ref.read(taskRepositoryProvider).updateTask(updatedTask);
     } else {
@@ -375,6 +438,7 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
         createdAt: Timestamp.now(),
         isRecurring: _selectedRecurrenceOption != null ? true : false,
         recurrenceInterval: _selectedRecurrenceOption,
+        customRecurrenceDays: int.tryParse(_customDaysController.text),
       );
       ref.read(taskRepositoryProvider).createTask(newTask);
     }
