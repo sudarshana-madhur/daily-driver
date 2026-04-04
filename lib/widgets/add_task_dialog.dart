@@ -412,7 +412,7 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
     final taskRepo = ref.read(taskRepositoryProvider);
 
     if (widget.task != null) {
-      final updatedTask = Task(
+      final updatedTask = widget.task!.copyWith(
         id: widget.task!.id,
         title: fullText,
         status: widget.task!.status,

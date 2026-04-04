@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum TaskStatus { todo, inProgress, completed }
 
+const Object _undefined = Object();
+
 class Task {
   final String id;
   final String title;
@@ -79,33 +81,43 @@ class Task {
     String? id,
     String? title,
     TaskStatus? status,
-    String? label,
-    Timestamp? dueDate,
+    Object? label = _undefined,
+    Object? dueDate = _undefined,
     Timestamp? createdAt,
-    Timestamp? inProgressAt,
-    Timestamp? completedAt,
+    Object? inProgressAt = _undefined,
+    Object? completedAt = _undefined,
     bool? isRecurring,
-    String? recurrenceInterval,
-    double? position,
-    bool? isLater,
-    bool? isRecurrenceCreated,
-    int? customRecurrenceDays,
+    Object? recurrenceInterval = _undefined,
+    Object? position = _undefined,
+    Object? isLater = _undefined,
+    Object? isRecurrenceCreated = _undefined,
+    Object? customRecurrenceDays = _undefined,
   }) {
     return Task(
       id: id ?? this.id,
       title: title ?? this.title,
       status: status ?? this.status,
-      label: label ?? this.label,
-      dueDate: dueDate ?? this.dueDate,
+      label: label == _undefined ? this.label : (label as String?),
+      dueDate: dueDate == _undefined ? this.dueDate : (dueDate as Timestamp?),
       createdAt: createdAt ?? this.createdAt,
-      inProgressAt: inProgressAt ?? this.inProgressAt,
-      completedAt: completedAt ?? this.completedAt,
+      inProgressAt: inProgressAt == _undefined
+          ? this.inProgressAt
+          : (inProgressAt as Timestamp?),
+      completedAt: completedAt == _undefined
+          ? this.completedAt
+          : (completedAt as Timestamp?),
       isRecurring: isRecurring ?? this.isRecurring,
-      recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
-      position: position ?? this.position,
-      isLater: isLater ?? this.isLater,
-      isRecurrenceCreated: isRecurrenceCreated ?? this.isRecurrenceCreated,
-      customRecurrenceDays: customRecurrenceDays ?? this.customRecurrenceDays,
+      recurrenceInterval: recurrenceInterval == _undefined
+          ? this.recurrenceInterval
+          : (recurrenceInterval as String?),
+      position: position == _undefined ? this.position : (position as double?),
+      isLater: isLater == _undefined ? this.isLater : (isLater as bool?),
+      isRecurrenceCreated: isRecurrenceCreated == _undefined
+          ? this.isRecurrenceCreated
+          : (isRecurrenceCreated as bool?),
+      customRecurrenceDays: customRecurrenceDays == _undefined
+          ? this.customRecurrenceDays
+          : (customRecurrenceDays as int?),
     );
   }
 }
