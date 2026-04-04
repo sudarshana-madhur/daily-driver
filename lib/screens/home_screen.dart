@@ -109,11 +109,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: bottomNavItems[_selectedIndex].screen,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          final bool isLaterTab =
+              _selectedIndex == 2 && ref.read(inboxTabIndexProvider) == 1;
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             // backgroundColor: Colors.transparent,
-            builder: (context) => const AddTaskDialog(),
+            builder: (context) => AddTaskDialog(initialIsLater: isLaterTab),
           );
         },
         child: const Icon(Icons.add),

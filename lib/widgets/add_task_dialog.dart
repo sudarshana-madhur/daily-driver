@@ -9,7 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddTaskDialog extends ConsumerStatefulWidget {
   final Task? task;
-  const AddTaskDialog({super.key, this.task});
+  final bool initialIsLater;
+  const AddTaskDialog({super.key, this.task, this.initialIsLater = false});
 
   @override
   ConsumerState<AddTaskDialog> createState() => _AddTaskDialogState();
@@ -449,6 +450,7 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
           isRecurring: _selectedRecurrenceOption != null ? true : false,
           recurrenceInterval: _selectedRecurrenceOption,
           customRecurrenceDays: int.tryParse(_customDaysController.text),
+          isLater: _selectedDueDate == null ? widget.initialIsLater : false,
         );
         taskRepo.createTask(newTask);
       }
