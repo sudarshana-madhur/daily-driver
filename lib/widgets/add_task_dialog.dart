@@ -149,7 +149,7 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
-                hintText: 'Task name',
+                hintText: 'Task name (enter multiple lines for bulk add)',
                 border: InputBorder.none,
                 hintStyle: TextStyle(),
               ),
@@ -406,12 +406,15 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
   }
 
   void _submit() {
-    if (_titleController.text.trim().isEmpty) return;
+    final fullText = _titleController.text.trim();
+    if (fullText.isEmpty) return;
+
+    final taskRepo = ref.read(taskRepositoryProvider);
 
     if (widget.task != null) {
       final updatedTask = Task(
         id: widget.task!.id,
-        title: _titleController.text.trim(),
+        title: fullText,
         status: widget.task!.status,
         label: _selectedLabel,
         dueDate: _selectedDueDate != null
@@ -425,22 +428,30 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
         position: widget.task!.position,
         customRecurrenceDays: int.tryParse(_customDaysController.text),
       );
-      ref.read(taskRepositoryProvider).updateTask(updatedTask);
+      taskRepo.updateTask(updatedTask);
     } else {
-      final newTask = Task(
-        id: ref.read(taskRepositoryProvider).generateTaskId(),
-        title: _titleController.text.trim(),
-        status: TaskStatus.todo,
-        label: _selectedLabel,
-        dueDate: _selectedDueDate != null
-            ? Timestamp.fromDate(_selectedDueDate!)
-            : null,
-        createdAt: Timestamp.now(),
-        isRecurring: _selectedRecurrenceOption != null ? true : false,
-        recurrenceInterval: _selectedRecurrenceOption,
-        customRecurrenceDays: int.tryParse(_customDaysController.text),
-      );
-      ref.read(taskRepositoryProvider).createTask(newTask);
+      final titles = fullText
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      for (final title in titles) {
+        final newTask = Task(
+          id: taskRepo.generateTaskId(),
+          title: title,
+          status: TaskStatus.todo,
+          label: _selectedLabel,
+          dueDate: _selectedDueDate != null
+              ? Timestamp.fromDate(_selectedDueDate!)
+              : null,
+          createdAt: Timestamp.now(),
+          isRecurring: _selectedRecurrenceOption != null ? true : false,
+          recurrenceInterval: _selectedRecurrenceOption,
+          customRecurrenceDays: int.tryParse(_customDaysController.text),
+        );
+        taskRepo.createTask(newTask);
+      }
     }
 
     Navigator.pop(context);
